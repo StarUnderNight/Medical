@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Medical</string>
+    <string name="title_activity_config">ConfigActivity</string>
+</resources>
