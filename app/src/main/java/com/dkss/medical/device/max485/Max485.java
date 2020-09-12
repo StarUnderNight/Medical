@@ -3,18 +3,19 @@ package com.dkss.medical.device.max485;
 import android.util.Log;
 
 import com.dkss.medical.serial.Max485Serial;
-import com.dkss.medical.util.Config;
+import com.dkss.medical.util.Protocol;
 import com.dkss.medical.util.DkssUtil;
 import com.dkss.medical.util.Payload;
 import com.dkss.medical.util.SerialUtil;
 import com.dkss.medical.util.SocketUtil;
 
-import java.security.interfaces.DSAKey;
 import java.util.ArrayList;
 
 public class Max485 implements  Runnable{
 
     public volatile boolean exit = false;
+
+
 
     private ArrayList<byte[]> bufferDataQueue;
     private int bufferDataQueueLen;
@@ -29,11 +30,11 @@ public class Max485 implements  Runnable{
 
     public Max485() {
         this.bufferDataQueue = new ArrayList<>();
-        this.boxIDPayload = DkssUtil.constructPayload(Config.ID_BOX_ID,Config.boxId);
-        this.boxTypePayload = DkssUtil.constructPayload(Config.ID_BOX_TYPE,Config.BOX_TYPE);
-        this.oDevTypePayload = DkssUtil.constructPayload(Config.ID_DEV_TYPE,Config.O_TYPE);
-        this.vDevTypePayload = DkssUtil.constructPayload(Config.ID_DEV_TYPE,Config.V_TYPE);
-        this.bufferDataQueueLen = Config.maxBufQueueLen;
+        this.boxIDPayload = DkssUtil.constructPayload(Protocol.ID_BOX_ID, Protocol.boxId);
+        this.boxTypePayload = DkssUtil.constructPayload(Protocol.ID_BOX_TYPE, Protocol.BOX_TYPE);
+        this.oDevTypePayload = DkssUtil.constructPayload(Protocol.ID_DEV_TYPE, Protocol.O_TYPE);
+        this.vDevTypePayload = DkssUtil.constructPayload(Protocol.ID_DEV_TYPE, Protocol.V_TYPE);
+        this.bufferDataQueueLen = Protocol.maxBufQueueLen;
     }
 
     private int[] readFromSerial(Max485Serial serial,int[] cmd,int readLen,int faultTolerant,float sleepTime){
@@ -59,14 +60,14 @@ public class Max485 implements  Runnable{
     }
 
     private boolean parseVolta(Max485Serial serial, int[] cmd, int readLen, Payload payload){
-        int[] data = readFromSerial(serial,cmd,readLen,Config.vFTT, Config.vSleepTime);
+        int[] data = readFromSerial(serial,cmd,readLen, Protocol.vFTT, Protocol.vSleepTime);
         if(data == null){
             System.out.println("data is null");
             return false;
         }
 
-        byte[][] id = {Config.ID_VOR_0,Config.ID_VOR_1,Config.ID_VOR_2,Config.ID_VOR_3,Config.ID_VOR_4,Config.ID_VOR_5, Config.ID_VOR_6,
-                Config.ID_VOR_7,Config.ID_VOR_8,Config.ID_VOR_9,Config.ID_VOR_10,Config.ID_VOR_11,Config.ID_VOR_12, Config.ID_VOR_13};
+        byte[][] id = {Protocol.ID_VOR_0, Protocol.ID_VOR_1, Protocol.ID_VOR_2, Protocol.ID_VOR_3, Protocol.ID_VOR_4, Protocol.ID_VOR_5, Protocol.ID_VOR_6,
+                Protocol.ID_VOR_7, Protocol.ID_VOR_8, Protocol.ID_VOR_9, Protocol.ID_VOR_10, Protocol.ID_VOR_11, Protocol.ID_VOR_12, Protocol.ID_VOR_13};
 
         int len = 14;
         float[] vArr = new float[len];
@@ -107,7 +108,7 @@ public class Max485 implements  Runnable{
     }
 
     private boolean parseOxygen(Max485Serial serial, int[] cmd, int readLen, Payload payload){
-        int[] data = readFromSerial(serial,cmd,readLen,Config.oFTT,Config.oSleepTime);
+        int[] data = readFromSerial(serial,cmd,readLen, Protocol.oFTT, Protocol.oSleepTime);
         if(data == null){
             return false;
         }
@@ -127,8 +128,8 @@ public class Max485 implements  Runnable{
 
         while(bufferDataQueue.size() > 0){
             DkssUtil.parsePacket(bufferDataQueue.get(0));
-            byte[] ret = SocketUtil.deliveryDataToServer(Config.sIP, Config.sPort,Config.sReadTimeout,
-                    Config.sConnectTimeout,bufferDataQueue.get(0));
+            byte[] ret = SocketUtil.deliveryDataToServer(Protocol.sIP, Protocol.sPort, Protocol.sReadTimeout,
+                    Protocol.sConnectTimeout,bufferDataQueue.get(0));
 
             if(ret == null || !DkssUtil.parseReply(ret)){
                 break;
@@ -146,7 +147,7 @@ public class Max485 implements  Runnable{
 
         while (true && !exit) {
             System.out.println("注册电量仪");
-            byte[] ret = SocketUtil.deliveryDataToServer(Config.sIP, Config.sPort, Config.sReadTimeout, Config.sConnectTimeout,
+            byte[] ret = SocketUtil.deliveryDataToServer(Protocol.sIP, Protocol.sPort, Protocol.sReadTimeout, Protocol.sConnectTimeout,
                     vRegisterPacket);
             if(ret == null){
                 try {
@@ -171,7 +172,7 @@ public class Max485 implements  Runnable{
 
         while (true && !exit) {
             System.out.println("注册氧气");
-            byte[] ret = SocketUtil.deliveryDataToServer(Config.sIP, Config.sPort, Config.sReadTimeout, Config.sConnectTimeout,
+            byte[] ret = SocketUtil.deliveryDataToServer(Protocol.sIP, Protocol.sPort, Protocol.sReadTimeout, Protocol.sConnectTimeout,
                     oRegisterPacket);
 
             if(ret == null){

@@ -13,20 +13,17 @@ import androidx.core.app.NotificationCompat;
 import com.dkss.medical.R;
 import com.dkss.medical.device.max485.Max485;
 import com.dkss.medical.device.pmr.PatientMonitor;
+import com.dkss.medical.device.pmr.PatientMonitor_v0;
 import com.dkss.medical.server.RespiratorServer;
-import com.dkss.medical.util.Config;
-import com.dkss.medical.util.DkssUtil;
+import com.dkss.medical.util.Protocol;
 import com.dkss.medical.util.IniConfig;
-import com.dkss.medical.util.SocketUtil;
 
-import java.io.BufferedInputStream;
-import java.util.ArrayList;
 import java.util.Map;
 
 public class MainService extends Service {
     private Context context;
     private RespiratorServer respiratorServer  = null;
-    private PatientMonitor patientMonitor = null;
+    private PatientMonitor_v0 patientMonitor = null;
     private Max485 max485 = null;
 
     public MainService() {
@@ -95,13 +92,13 @@ public class MainService extends Service {
         try {
 
             Map<String,Object> cfgMap =  IniConfig.readIni(assetManager.open("dkss_medical.ini"));
-            Config config = new Config();
+            Protocol config = new Protocol();
             if(!config.init(cfgMap)){
                 System.out.println("配置文件缺少配置信息，请检查");
                 return false;
             }
 
-            com.dkss.medical.ecg.PatientMonitor pmTest = new com.dkss.medical.ecg.PatientMonitor();
+            PatientMonitor pmTest = new PatientMonitor();
             new Thread(pmTest).start();
 
 
