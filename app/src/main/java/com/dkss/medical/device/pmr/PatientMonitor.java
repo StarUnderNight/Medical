@@ -2,50 +2,58 @@ package com.dkss.medical.device.pmr;
 
 import android.util.Log;
 
+import com.dkss.medical.device.BasicDevice;
+import com.dkss.medical.server.ServerInfo;
+import com.dkss.medical.util.BufferQueue;
 import com.dkss.medical.util.PMUtil;
 import com.dkss.medical.util.DkssUtil;
 import com.dkss.medical.util.SocketUtil;
 
-public class PatientMonitor implements Runnable{
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import java.util.HashMap;
+import java.util.Map;
+
+public class PatientMonitor extends BasicDevice {
     private boolean isAlive = false;   //监护仪状态是否在线
-    private byte cMachineNum  = 0x09;
+    private byte pMachineNum;
+    private ServerInfo sInfo;
+    private BufferQueue queue;
+    private int pReadTimeout;
 
-    private boolean registDev(){
+    public boolean init(Map<String,Object> cfgMap){
 
-        // 注册设备
-        byte[] boxIDPayload = DkssUtil.constructPayload(new byte[] { 0x00, 0x01 },"c3653127-08b3-488d-9b80-77b7e6082910");
-        byte[] boxTypePayload = DkssUtil.constructPayload(new byte[] {0x00,0x04},"medicalbox");
-        byte[] devTypePayload = DkssUtil.constructPayload(new byte[]{0x00,0x05},"pmr");
-        byte[] registerPacket = DkssUtil.constructPacket(
-                DkssUtil.DKSS_VERSION,DkssUtil.DKSS_CMD_REGISTER_DEV,4,
-                DkssUtil.mergeByte(boxTypePayload,boxIDPayload,devTypePayload,DkssUtil.getTimePayload()));
-        DkssUtil.printByte(registerPacket);
+        try{
+            HashMap<String,String> tempMap = (HashMap)cfgMap.get("server_host");
+            String sIp = tempMap.get("host");
+            int sPort = Integer.parseInt(tempMap.get("port"));
+            int sReadTimeout = Integer.parseInt(tempMap.get("read_timeout"));
+            int sConnectTimeout = Integer.parseInt(tempMap.get("connect_timeout"));
 
-        while (true ) {
-            System.out.println("注册监护仪----");
+            tempMap = (HashMap<String, String>)cfgMap.get("pmr");
+            pReadTimeout = Integer.parseInt(tempMap.get("read_timeout"));
+            int bufQueueLen = Integer.parseInt(tempMap.get("buf_queue_len"));
+            pMachineNum = Byte.parseByte(tempMap.get("machine_num"));
 
-            byte[] ret = SocketUtil.deliveryDataToServer("47.107.85.10",20905,3000,5000,
-                    registerPacket);
-            if(ret == null){
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                continue;
+            if(sIp ==null){
+                throw  new NumberFormatException();
             }
 
-            Log.i("p","注册监护仪，服务器返回：");
-            DkssUtil.printByte(ret);
-            if(DkssUtil.parseReply(ret)){
-                break;
-            }
+            sInfo = new ServerInfo(sIp,sPort,sReadTimeout,sConnectTimeout);
+            queue = new BufferQueue(bufQueueLen);
+
+        }catch (NumberFormatException e){
+            System.err.println("pmr配置文件有误");
+            return false;
         }
         return true;
     }
+
     @Override
     public void run() {
-        registDev();
+
+        ServerInfo info = new ServerInfo("47.107.85.10",20905,3000,5000);
+
         byte mMachineNum  = 0x00;
         String mIP = null;
         byte mProtocolVersion = 0x00;

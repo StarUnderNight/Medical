@@ -51,4 +51,5 @@ public class ServerInfo {
         this.readTimeout = 5000;
         this.connectTimeout = 5000;
     }
+
 }

@@ -104,8 +104,7 @@ public class Respirator  implements  Runnable {
         while (bufferDataQueue.size() > 0) {
             System.out.println("准备发送呼吸机数据为：");
             DkssUtil.parsePacket(bufferDataQueue.get(0));
-            byte[] ret = SocketUtil.deliveryDataToServer(remoteHost, remotePort, remoteReadTimeout,
-                    remoteConnectTimeout, bufferDataQueue.get(0));
+            byte[] ret = SocketUtil.deliveryDataToServer(null, bufferDataQueue.get(0));
             if(ret == null){
                 return;
             }
@@ -127,7 +126,7 @@ public class Respirator  implements  Runnable {
         DkssUtil.printByte(registerPacket);
 
         while (true && !exit) {
-            byte[] ret = SocketUtil.deliveryDataToServer(remoteHost, remotePort, remoteReadTimeout, remoteConnectTimeout,
+            byte[] ret = SocketUtil.deliveryDataToServer(null,
                     registerPacket);
 
             try {

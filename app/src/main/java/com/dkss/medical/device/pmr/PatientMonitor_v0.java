@@ -250,8 +250,7 @@ public class PatientMonitor_v0 implements Runnable {
             System.out.println("发送监护仪数据:");
             DkssUtil.parsePacket(bufferDataQueue.get(0));
             DkssUtil.printByte(bufferDataQueue.get(0));
-			byte[] ret = SocketUtil.deliveryDataToServer(remoteHost, remotePort, remoteReadTimeout,
-					remoteConnectTimeout, bufferDataQueue.get(0));
+			byte[] ret = SocketUtil.deliveryDataToServer(null, bufferDataQueue.get(0));
 			if(ret == null ){
 				return;
 			}
@@ -271,8 +270,7 @@ public class PatientMonitor_v0 implements Runnable {
 
 		while (true && !exit) {
 			System.out.println("注册监护仪");
-			byte[] ret = SocketUtil.deliveryDataToServer(remoteHost, remotePort, remoteReadTimeout, remoteConnectTimeout,
-					registerPacket);
+			byte[] ret = SocketUtil.deliveryDataToServer(null,registerPacket);
 			if(ret == null){
 				try {
 					Thread.sleep(5000);

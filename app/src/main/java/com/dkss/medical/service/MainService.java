@@ -89,18 +89,14 @@ public class MainService extends Service {
         Thread max485Thread = null;
         Thread rerThread = null;
 
+
         try {
 
             Map<String,Object> cfgMap =  IniConfig.readIni(assetManager.open("dkss_medical.ini"));
-            Protocol config = new Protocol();
-            if(!config.init(cfgMap)){
-                System.out.println("配置文件缺少配置信息，请检查");
-                return false;
-            }
-
+            Protocol protocol = new Protocol();
+            protocol.init(cfgMap);
             PatientMonitor pmTest = new PatientMonitor();
             new Thread(pmTest).start();
-
 
 
         } catch (Exception e) {

@@ -1,5 +1,7 @@
 package com.dkss.medical.util;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,12 +19,13 @@ public class Protocol {
     public static int pReadTimeout;
     public static int pBufQueueLen;
     public static byte pMachineNum;
+
     //max485,包括电量仪和氧气，他们都是485接口，因此写在一起
     public static final  String V_TYPE = "vor";
-    public static int vSleepTime;
+    public static float vSleepTime;
     public static int vFTT;   //fault tolerance
     public static final String O_TYPE = "oxy";
-    public static int oSleepTime;
+    public static float oSleepTime;
     public static int oFTT;
     public static int maxBufQueueLen;
     //rer
@@ -176,6 +179,8 @@ public class Protocol {
 
     public boolean init(Map<String,Object> cfgMap){
 
+
+
         try{
             HashMap<String, String> tempMap = null;
             //box
@@ -190,28 +195,30 @@ public class Protocol {
                 System.err.println("no server_host box");
                 return false;
             }
+
             sIP = tempMap.get("host");
             sPort = Integer.parseInt(tempMap.get("port"));
             sReadTimeout = Integer.parseInt(tempMap.get("read_timeout"));
             sConnectTimeout = Integer.parseInt(tempMap.get("connect_timeout"));
 
             //pmr
-            if((tempMap = (HashMap) cfgMap.get("patient_monitor")) == null){
-                System.err.println("no patient_monitor box");
+            if((tempMap = (HashMap) cfgMap.get("pmr")) == null){
+                System.err.println("no pmr box");
                 return false;
             }
             pReadTimeout   = Integer.parseInt(tempMap.get("read_timeout"));
             pBufQueueLen = Integer.parseInt(tempMap.get("buf_queue_len"));
             pMachineNum = Byte.parseByte(tempMap.get("machine_num"));
 
+
             //max485
             if((tempMap = (HashMap) cfgMap.get("max485")) == null){
                 System.err.println("no max485 box");
                 return false;
             }
-            vSleepTime = Integer.parseInt(tempMap.get("v_sleep_time"));
+            vSleepTime = Float.parseFloat(tempMap.get("v_sleep_time"));
             vFTT = Integer.parseInt(tempMap.get("v_FTT"));
-            oSleepTime = Integer.parseInt(tempMap.get("o_sleep_time"));
+            oSleepTime = Float.parseFloat(tempMap.get("o_sleep_time"));
             oFTT  = Integer.parseInt(tempMap.get("o_FTT"));
             maxBufQueueLen  = Integer.parseInt(tempMap.get("buf_queue_len"));
 
@@ -222,7 +229,7 @@ public class Protocol {
             }
             rPort = Integer.parseInt(tempMap.get("port"));
             rBufQueueLen = Integer.parseInt(tempMap.get("buf_queue_len"));
-
+            System.out.println("F");
             if(boxId==null || sIP==null){
                 throw  new NumberFormatException();
             }

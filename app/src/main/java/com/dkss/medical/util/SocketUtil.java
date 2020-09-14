@@ -1,5 +1,7 @@
 package com.dkss.medical.util;
 
+import com.dkss.medical.server.ServerInfo;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -125,7 +127,7 @@ public class SocketUtil {
 	}
 
 	// 工具类，发送data到host:port，并接受服务器回复，读超时readTimeout，连接超时connectTimeout
-	public static byte[] deliveryDataToServer(String host, int port, int readTimeout, int connectTimeout, byte[] data) {
+	public static byte[] deliveryDataToServer(ServerInfo info, byte[] data) {
 
 		Socket socket = new Socket();
 		byte[] buffer = new byte[1024];
@@ -135,8 +137,8 @@ public class SocketUtil {
 
 
 		try {
-			socket.setSoTimeout(readTimeout);
-			socket.connect(new InetSocketAddress(host, port), connectTimeout);
+			socket.setSoTimeout(info.getReadTimeout());
+			socket.connect(new InetSocketAddress(info.getIp(), info.getPort()), info.getConnectTimeout());
 
 
 			bis = new BufferedInputStream(socket.getInputStream());

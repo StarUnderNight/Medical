@@ -1,6 +1,9 @@
 package com.dkss.medical.device.pmr;
 
+import android.util.Log;
+
 import com.dkss.medical.device.BasicDevice;
+import com.dkss.medical.server.ServerInfo;
 import com.dkss.medical.util.PMUtil;
 import com.dkss.medical.util.DkssUtil;
 import com.dkss.medical.util.Payload;
@@ -9,6 +12,7 @@ import com.dkss.medical.util.SocketUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 
 public class ListenMonitor extends BasicDevice {
@@ -114,7 +118,7 @@ public class ListenMonitor extends BasicDevice {
         while (offset<packetLen) {
 
             modLen = data[offset+2]*128+data[offset+3]+4;
-            System.err.println(String.format("%02x",data[offset]));
+            //System.err.println(String.format("%02x",data[offset]));
             // ECG数据块
             if (data[offset] == (byte)0xe0) {
 
@@ -204,8 +208,10 @@ public class ListenMonitor extends BasicDevice {
             }else if(data[offset] == (byte)0xfd){
 
             }else if(data[offset] == (byte)0xfe){
-
+                modLen = data[offset+1]*128+data[offset+2]+3;
+                System.out.println("出现FE模块");
             }
+
             offset +=modLen;
         }
         byte[] pData = payload.getData();
@@ -215,11 +221,23 @@ public class ListenMonitor extends BasicDevice {
             bufferDataQueue.add(DkssUtil.constructPacket(DkssUtil.DKSS_VERSION,DkssUtil.DKSS_CMD_SEND_DATA,payload.getNum(),payload.getData()));
         }
 
-        System.out.println("缓存数量:"+bufferDataQueue.size()+"; 缓存长度");
+        //System.out.println("缓存数量:"+bufferDataQueue.size()+"; 缓存长度");
+
         while (bufferDataQueue.size() > 0) {
 
+//            if(bufferDataQueue.get(0).length==1984){
+//                byte[] a = new byte[1300];
+//                int l = data.length-1300;
+//                byte[] b= new byte[l];
+//                System.arraycopy(data,0,a,0,1300);
+//                System.arraycopy(data,1300,b,0,l);
+//                DkssUtil.printByte(a);
+//                DkssUtil.printByte(b);
+//
+//            }
             System.out.println("准备发送监护仪数据,数据长度:"+bufferDataQueue.get(0).length);
-            byte[] ret = SocketUtil.deliveryDataToServer("47.107.85.10",20905,3000,5000, bufferDataQueue.get(0));
+            ServerInfo info = new ServerInfo("47.107.85.10",20905,3000,5000);
+            byte[] ret = SocketUtil.deliveryDataToServer(info, bufferDataQueue.get(0));
             if(ret == null ){
                 System.out.println("监护仪返回null，重新发送数据");
                 try {
@@ -229,6 +247,7 @@ public class ListenMonitor extends BasicDevice {
                 }
                 continue;
             }
+
             bufferDataQueue.remove(0);
         }
 
@@ -261,10 +280,11 @@ public class ListenMonitor extends BasicDevice {
         switch ((data[offset + 5] & 0x03)){
             case 0x00:
                 lead = 5;
-                System.out.println("还没有做5导");
+                waveSize = (modLen-fixedLen)/6;
                 break;
             case 0x02:
                 lead = 3;
+                waveSize = (modLen-fixedLen)/3;
                 System.out.println("还没有做3导");
                 break;
             case 0x01:
@@ -333,6 +353,7 @@ public class ListenMonitor extends BasicDevice {
                 //加入payload
                 ret =  payload.add(
                         ecgHrPayload,
+                        DkssUtil.constructPayload(new byte[]{0x10,0x36},(short)waveSize),
                         DkssUtil.constructPayload(new byte[]{0x10,0x23},ecgByteArrI),
                         DkssUtil.constructPayload(new byte[]{0x10,0x24},ecgByteArrII),
                         DkssUtil.constructPayload(new byte[]{0x10,0x25},ecgByteArrIII),
@@ -403,6 +424,7 @@ public class ListenMonitor extends BasicDevice {
                 //加入payload
                   ret =  payload.add(
                         ecgHrPayload,
+                        DkssUtil.constructPayload(new byte[]{0x10,0x36},(short)waveSize),
                         DkssUtil.constructPayload(new byte[]{0x10,0x23},ecgByteArrI),
                         DkssUtil.constructPayload(new byte[]{0x10,0x24},ecgByteArrII),
                         DkssUtil.constructPayload(new byte[]{0x10,0x25},ecgByteArrIII),
@@ -445,8 +467,7 @@ public class ListenMonitor extends BasicDevice {
 
         boolean ret =payload.add(
                 DkssUtil.constructPayload(new byte[]{0x10,0x78},spo2ByteArrBO),
-                DkssUtil.constructPayload(new byte[]{0x10,0x70},spo2Value),
-                DkssUtil.constructPayload(new byte[]{0x10,0x36},(short)waveSize)
+                DkssUtil.constructPayload(new byte[]{0x10,0x70},spo2Value)
                 );
         return ret;
     }
@@ -480,8 +501,7 @@ public class ListenMonitor extends BasicDevice {
             respByteArr[i] = (byte)(respShortList.get(i)/2);
         }
         boolean ret = payload.add(
-                DkssUtil.constructPayload(new byte[]{0x10,(byte)0x92},respByteArr),
-                DkssUtil.constructPayload(new byte[]{0x10,0x36},(short)waveSize));
+                DkssUtil.constructPayload(new byte[]{0x10,(byte)0x92},respByteArr));
         return ret;
     }
 

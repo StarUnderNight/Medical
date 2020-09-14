@@ -128,8 +128,7 @@ public class Max485 implements  Runnable{
 
         while(bufferDataQueue.size() > 0){
             DkssUtil.parsePacket(bufferDataQueue.get(0));
-            byte[] ret = SocketUtil.deliveryDataToServer(Protocol.sIP, Protocol.sPort, Protocol.sReadTimeout,
-                    Protocol.sConnectTimeout,bufferDataQueue.get(0));
+            byte[] ret = SocketUtil.deliveryDataToServer(null,bufferDataQueue.get(0));
 
             if(ret == null || !DkssUtil.parseReply(ret)){
                 break;
@@ -147,7 +146,7 @@ public class Max485 implements  Runnable{
 
         while (true && !exit) {
             System.out.println("注册电量仪");
-            byte[] ret = SocketUtil.deliveryDataToServer(Protocol.sIP, Protocol.sPort, Protocol.sReadTimeout, Protocol.sConnectTimeout,
+            byte[] ret = SocketUtil.deliveryDataToServer(null,
                     vRegisterPacket);
             if(ret == null){
                 try {
@@ -172,7 +171,7 @@ public class Max485 implements  Runnable{
 
         while (true && !exit) {
             System.out.println("注册氧气");
-            byte[] ret = SocketUtil.deliveryDataToServer(Protocol.sIP, Protocol.sPort, Protocol.sReadTimeout, Protocol.sConnectTimeout,
+            byte[] ret = SocketUtil.deliveryDataToServer(null,
                     oRegisterPacket);
 
             if(ret == null){
