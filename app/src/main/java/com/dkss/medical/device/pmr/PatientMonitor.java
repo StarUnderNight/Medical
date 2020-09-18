@@ -52,7 +52,7 @@ public class PatientMonitor extends BasicDevice {
     @Override
     public void run() {
 
-        ServerInfo info = new ServerInfo("47.107.85.10",20905,3000,5000);
+//        ServerInfo info = new ServerInfo("47.107.85.10",20905,3000,5000);
 
         byte mMachineNum  = 0x00;
         String mIP = null;
@@ -65,7 +65,7 @@ public class PatientMonitor extends BasicDevice {
         System.out.println("启动，监听8002端口");
         new Thread(broadcast).start();
 
-        System.out.println("启动，监听51818端口");
+        System.out.println("启动，监听数据端口");
         //2、创建线程，监听与监护仪协定的端口
         new Thread(monitor).start();
 

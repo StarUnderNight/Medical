@@ -15,3 +15,4 @@ public interface Device {
     void send(byte[] cmd);
     void flushBuf(ServerInfo info, BufferQueue queue);
 }
+

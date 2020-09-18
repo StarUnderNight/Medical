@@ -93,10 +93,17 @@ public class MainService extends Service {
         try {
 
             Map<String,Object> cfgMap =  IniConfig.readIni(assetManager.open("dkss_medical.ini"));
+            Map<String,Object> rerMap =  IniConfig.readIni(assetManager.open("dkss_rer.ini"));
             Protocol protocol = new Protocol();
             protocol.init(cfgMap);
             PatientMonitor pmTest = new PatientMonitor();
             new Thread(pmTest).start();
+
+            RespiratorServer rer = new RespiratorServer(cfgMap,rerMap);
+            new Thread(rer).start();
+
+            Max485 max485 = new Max485();
+            new Thread(max485).start();
 
 
         } catch (Exception e) {

@@ -23,7 +23,6 @@ public class ListenBroadcast implements Runnable{
         while (true) {
 
             data = PMUtil.receiveUDP(8002, 0);
-
             if(data[1] == (byte)0xD0) {
                 mProtocolVersion = data[8];
             }else if(data[1] == (byte)0xDA) {
@@ -31,10 +30,7 @@ public class ListenBroadcast implements Runnable{
                 if(ret ==200) {
                     isData = true;
                 }
-
             }
-
-
         }
     }
 

@@ -40,7 +40,7 @@ public class Payload {
         }
         byte[] temp = new byte[LIMIT];
         System.arraycopy(payload, 0, temp, 0, size);
-        System.arraycopy(data, 0, temp, size, size);
+        System.arraycopy(data, 0, temp, size, offset);
         data = temp;
         num++;
         offset += size;

@@ -3,6 +3,7 @@ package com.dkss.medical.device.max485;
 import android.util.Log;
 
 import com.dkss.medical.serial.Max485Serial;
+import com.dkss.medical.server.ServerInfo;
 import com.dkss.medical.util.Protocol;
 import com.dkss.medical.util.DkssUtil;
 import com.dkss.medical.util.Payload;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 public class Max485 implements  Runnable{
 
     public volatile boolean exit = false;
+    private ServerInfo info;
 
 
 
@@ -35,6 +37,7 @@ public class Max485 implements  Runnable{
         this.oDevTypePayload = DkssUtil.constructPayload(Protocol.ID_DEV_TYPE, Protocol.O_TYPE);
         this.vDevTypePayload = DkssUtil.constructPayload(Protocol.ID_DEV_TYPE, Protocol.V_TYPE);
         this.bufferDataQueueLen = Protocol.maxBufQueueLen;
+        this.info = new ServerInfo(Protocol.sIP,Protocol.sPort,Protocol.sReadTimeout,Protocol.sConnectTimeout);
     }
 
     private int[] readFromSerial(Max485Serial serial,int[] cmd,int readLen,int faultTolerant,float sleepTime){
@@ -45,7 +48,6 @@ public class Max485 implements  Runnable{
             int[] buffer = serial.read();
 
             if(buffer ==null){
-                System.out.println("buffer is null");
                 continue;
             }
 
@@ -62,7 +64,7 @@ public class Max485 implements  Runnable{
     private boolean parseVolta(Max485Serial serial, int[] cmd, int readLen, Payload payload){
         int[] data = readFromSerial(serial,cmd,readLen, Protocol.vFTT, Protocol.vSleepTime);
         if(data == null){
-            System.out.println("data is null");
+            System.out.println("无电量仪数据");
             return false;
         }
 
@@ -104,15 +106,22 @@ public class Max485 implements  Runnable{
             payload.add(DkssUtil.constructPayload(id[i],vArr[i]));
         }
 
+
         return true;
     }
 
-    private boolean parseOxygen(Max485Serial serial, int[] cmd, int readLen, Payload payload){
+    private boolean parseOxygen(Max485Serial serial, int[] cmd, int readLen,int AB, Payload payload){
         int[] data = readFromSerial(serial,cmd,readLen, Protocol.oFTT, Protocol.oSleepTime);
         if(data == null){
+            System.out.println("无氧气数据");
             return false;
         }
         float oxy = ((float)(data[3]*256+data[4])) /100;
+        if(AB == 0){
+            payload.add(DkssUtil.constructPayload(Protocol.ID_OXY_A,oxy));
+        }else {
+            payload.add(DkssUtil.constructPayload(Protocol.ID_OXY_B,oxy));
+        }
 
         return true;
     }
@@ -128,11 +137,13 @@ public class Max485 implements  Runnable{
 
         while(bufferDataQueue.size() > 0){
             DkssUtil.parsePacket(bufferDataQueue.get(0));
-            byte[] ret = SocketUtil.deliveryDataToServer(null,bufferDataQueue.get(0));
+
+            byte[] ret = SocketUtil.deliveryDataToServer(info,bufferDataQueue.get(0));
 
             if(ret == null || !DkssUtil.parseReply(ret)){
                 break;
             }
+            System.out.println("发送485数据，并收到服务器返回");
             bufferDataQueue.remove(0);
         }
     }
@@ -144,9 +155,10 @@ public class Max485 implements  Runnable{
                 DkssUtil.DKSS_VERSION,DkssUtil.DKSS_CMD_REGISTER_DEV,4,
                 DkssUtil.mergeByte(boxTypePayload,boxIDPayload,vDevTypePayload,DkssUtil.getTimePayload()));
 
+
         while (true && !exit) {
             System.out.println("注册电量仪");
-            byte[] ret = SocketUtil.deliveryDataToServer(null,
+            byte[] ret = SocketUtil.deliveryDataToServer(info,
                     vRegisterPacket);
             if(ret == null){
                 try {
@@ -171,7 +183,7 @@ public class Max485 implements  Runnable{
 
         while (true && !exit) {
             System.out.println("注册氧气");
-            byte[] ret = SocketUtil.deliveryDataToServer(null,
+            byte[] ret = SocketUtil.deliveryDataToServer(info,
                     oRegisterPacket);
 
             if(ret == null){
@@ -214,12 +226,14 @@ public class Max485 implements  Runnable{
         registDev();
 
         int[] vCmd = {3,3,0,0,0,15,4,44};   //03 03 00 00 00 0f 04 2c
-        int[][] oCmd = {{1,3,0,1,0,1,213,202},//01 03 00 01 00 01 d5 ca
-                {2,3,0,1,0,1,213,249}   //02 03 00 01 00 01 d5 f9
+        int[][] oCmd = {{1,3,0,1,0,1,213,202},//01 03 00 01 00 01 d5 ca   A
+                {2,3,0,1,0,1,213,249}   //02 03 00 01 00 01 d5 f9  B
         };
 
         int vDataLen = 35;
         int oDataLen = 8;
+
+
 
 
         while(!exit){
@@ -231,12 +245,13 @@ public class Max485 implements  Runnable{
                 payload.add(0,vDevTypePayload);
                 payload.add(0,boxIDPayload);
                 payload.add(0,boxTypePayload);
-                addToBufferQueue(payload.getData());
+                addToBufferQueue(DkssUtil.constructPacket(DkssUtil.DKSS_VERSION,DkssUtil.DKSS_CMD_SEND_DATA,payload.getNum(),
+                        payload.getData()));
                 payload.clear();
             }
 
             for(int i=0;i<oCmd.length;i++){
-                parseOxygen(serial,oCmd[0],oDataLen,payload);
+                parseOxygen(serial,oCmd[0],oDataLen,i,payload);
             }
 
             if(payload.getNum()!=0){
@@ -245,7 +260,8 @@ public class Max485 implements  Runnable{
                 payload.add(0,boxIDPayload);
                 payload.add(0,boxTypePayload);
 
-                addToBufferQueue(payload.getData());
+                addToBufferQueue(DkssUtil.constructPacket(DkssUtil.DKSS_VERSION,DkssUtil.DKSS_CMD_SEND_DATA,payload.getNum(),
+                        payload.getData()));
                 payload.clear();
             }
 

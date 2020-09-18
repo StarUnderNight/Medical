@@ -31,7 +31,7 @@ public class RespiratorServer implements Runnable {
     public void run() {
         ArrayList<Socket> socketList = new ArrayList<Socket>();
         ServerSocket ss = null;
-        HashMap<String,String> rerCfgMap = (HashMap)commonCfgMap.get("respirator");
+        HashMap<String,String> rerCfgMap = (HashMap)commonCfgMap.get("rer");
         this.localPort = Integer.parseInt(rerCfgMap.get("port"));
         System.out.println("监听端口:"+localPort);
         try {

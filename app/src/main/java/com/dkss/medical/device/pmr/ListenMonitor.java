@@ -64,10 +64,11 @@ public class ListenMonitor extends BasicDevice {
                     PMUtil.sendUDP("192.168.1.119", 8002, timeSynByte);
                     DkssUtil.printByte(timeSynByte);
                     System.out.println("发送配置请求包");
-                    PMUtil.sendUDP("19 2.168.1.11 9", 8002, cfgByte);
+                    PMUtil.sendUDP("192.168.1.119", 8002, cfgByte);
                     DkssUtil.printByte(cfgByte);
                 }
                 if(data !=null) {
+                    System.out.println("接收到监听端口的数据");
                    // System.err.println("接收到的数据为");
                     parsePacketD1(data);
                 }
@@ -118,7 +119,7 @@ public class ListenMonitor extends BasicDevice {
         while (offset<packetLen) {
 
             modLen = data[offset+2]*128+data[offset+3]+4;
-            //System.err.println(String.format("%02x",data[offset]));
+            System.err.println(String.format("%02x",data[offset]));
             // ECG数据块
             if (data[offset] == (byte)0xe0) {
 
@@ -235,7 +236,7 @@ public class ListenMonitor extends BasicDevice {
 //                DkssUtil.printByte(b);
 //
 //            }
-            System.out.println("准备发送监护仪数据,数据长度:"+bufferDataQueue.get(0).length);
+           // System.out.println("准备发送监护仪数据,数据长度:"+bufferDataQueue.get(0).length);
             ServerInfo info = new ServerInfo("47.107.85.10",20905,3000,5000);
             byte[] ret = SocketUtil.deliveryDataToServer(info, bufferDataQueue.get(0));
             if(ret == null ){
@@ -275,7 +276,12 @@ public class ListenMonitor extends BasicDevice {
 
         //处理固定参数的数据
         short ecgHr =  (short)((data[offset+6]&0x03)*128+data[offset+8]);
-        byte[] ecgHrPayload = DkssUtil.constructPayload(new byte[]{0x10,0x20},ecgHr);
+        byte[] test = DkssUtil.constructPayload(new byte[]{0x10,0x20},ecgHr);
+//        if(ecgHr !=511 ){
+//            if(payload.add(DkssUtil.constructPayload(new byte[]{0x10,0x20},ecgHr))){
+//                return false;
+//            }
+//        }
 
         switch ((data[offset + 5] & 0x03)){
             case 0x00:
@@ -352,7 +358,7 @@ public class ListenMonitor extends BasicDevice {
                 }
                 //加入payload
                 ret =  payload.add(
-                        ecgHrPayload,
+                        test,
                         DkssUtil.constructPayload(new byte[]{0x10,0x36},(short)waveSize),
                         DkssUtil.constructPayload(new byte[]{0x10,0x23},ecgByteArrI),
                         DkssUtil.constructPayload(new byte[]{0x10,0x24},ecgByteArrII),
@@ -423,7 +429,7 @@ public class ListenMonitor extends BasicDevice {
                 }
                 //加入payload
                   ret =  payload.add(
-                        ecgHrPayload,
+                          test,
                         DkssUtil.constructPayload(new byte[]{0x10,0x36},(short)waveSize),
                         DkssUtil.constructPayload(new byte[]{0x10,0x23},ecgByteArrI),
                         DkssUtil.constructPayload(new byte[]{0x10,0x24},ecgByteArrII),
@@ -451,6 +457,7 @@ public class ListenMonitor extends BasicDevice {
     private boolean parseSpO2(byte[] data,int offset,int modLen,Payload payload){
         int fixedLen = 9;
         short spo2Value = data[offset+5];
+        //spo2Value = spo2Value == (short)65535?0:spo2Value;
 
         //处理波形数据
         int waveSize = (modLen-fixedLen)/3;
@@ -473,14 +480,12 @@ public class ListenMonitor extends BasicDevice {
     }
 
     private boolean parsePulse(byte[] data, int offset, int modLen, Payload payload){
-        if((data[offset+5]&0x04)==0x04){
-            System.out.println("脉搏值不对");
-            return true;
-        }
 
         short pulsePR = (short)(data[offset+5]*128+data[offset+4]);
+//        if(pulsePR == (short)65535 || ((data[offset+5]&0x04)==0x04)){
+//            pulsePR =0;
+//        }
         boolean ret = payload.add(DkssUtil.constructPayload(new byte[]{0x11,0x70},pulsePR));
-
         return ret;
     }
 
@@ -489,10 +494,10 @@ public class ListenMonitor extends BasicDevice {
         int waveSize = (modLen-fixedLen)/2;
         ArrayList<Short> respShortList = new ArrayList<>();
         byte[] respByteArr = new byte[waveSize];
-        if((data[offset+5]&0x01)==0){
-            short respRR = data[offset+4];
-            payload.add(DkssUtil.constructPayload(new byte[]{0x10,(byte)0x90},respRR));
-        }
+        short respRR = data[offset+4];
+//        if((data[offset+5]&0x01)==0 && (data[offset+4] != (byte)0xff)){
+//            respRR = data[offset+4];
+//        }
 
         for(int i=0;i<waveSize;i++){
             respShortList.add((short)((data[offset+fixedLen+i*2]>>2)*128+data[offset+fixedLen+i*2+1]));
@@ -501,12 +506,19 @@ public class ListenMonitor extends BasicDevice {
             respByteArr[i] = (byte)(respShortList.get(i)/2);
         }
         boolean ret = payload.add(
+                DkssUtil.constructPayload(Protocol.ID_RESP_RR,respRR),
                 DkssUtil.constructPayload(new byte[]{0x10,(byte)0x92},respByteArr));
         return ret;
     }
 
     private boolean parseTemp(byte[] data,int offset,int modLen,Payload payload){
+
         float tempValue = (float)((data[offset+6]*128+data[offset+5])*0.1);
+        //判断是否有体温，当体温所对应的位全为1时，表示无体温值
+//        if(data[offset+5] ==(byte)0x7f && data[offset+6] == (byte)0x3f){
+//            tempValue = 0;
+//        }
+
         byte[][] id = new byte[][]{
                 {0x12,0x30},
                 {0x12,0x33},
@@ -541,6 +553,11 @@ public class ListenMonitor extends BasicDevice {
         short nibpSys = (short)((data[offset+9]*128+data[offset+8])*0.1);
         short nibpMean = (short)((data[offset+11]*128+data[offset+10])*0.1);
         short nibpDia = (short)((data[offset+13]*128+data[offset+12])*0.1);
+//        if(nibpSys==793 && nibpMean==818 && nibpDia ==818){
+//            nibpSys = 0;
+//            nibpMean = 0;
+//            nibpDia = 0;
+//        }
 
         boolean ret = payload.add(
                 DkssUtil.constructPayload(new byte[]{0x10,(byte)0x80},nibpSys),
